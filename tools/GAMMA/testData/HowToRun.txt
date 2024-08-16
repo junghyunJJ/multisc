@@ -1,8 +1,0 @@
-1. Generate a Kinship matrix
-python ./Pylmm_GAMMA/pylmmKinship.py -v --emmaSNP=./testData/X.txt --emmaNumSNPs=100 ./testData/K.txt
-
-2. Estimate heritability
-python ./Pylmm_GAMMA/pylmmGWAS_multiPhHeri.py -v --emmaSNP=./testData/X.txt --kfile=./testData/K.txt --emmaPHENO=./testData/Y.txt ./testData/VC.txt
-
-3. Run GAMMA
-Usage: R CMD BATCH --args -Xpath=./testData/X_rightdim.txt -Kpath=./testData/K.txt -Ypath=./testData/Y_rightdim.txt -VCpath=./testData/VC.txt -outputPath=./testData/ GAMMA.R ./testData/GAMMA.log
