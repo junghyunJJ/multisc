@@ -4,7 +4,7 @@ library(data.table)
 library(gemma2) # https://github.com/fboehm/gemma2
 
 library(jjutil) # devtools::install_github("junghyunJJ/jjuitl")
-source("functions.R")
+source("R/multisc.R")
 
 # load pheno data from gemma2 r package
 pheno <- readr::read_tsv(system.file("extdata", "mouse100.pheno.txt", package = "gemma2"), col_names = FALSE)
@@ -67,7 +67,7 @@ lm(new_dat$new_y ~ new_dat$new_x - 1) %>% summary
 #     -n 1 6 \
 #     -o mouse100
 
-gemma <- fread("mouse100.assoc.txt") # results from gemma
+gemma <- fread("data/mouse100.assoc.txt") # results from gemma
 gemma %>%
   filter(rs %in% sel_snps) %>%
   arrange(p_wald)
