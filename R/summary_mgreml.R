@@ -40,14 +40,3 @@ read_vc <- function(file) {
 
   list(vg = vg, vg_se = vg_se, ve = ve, ve_se = ve_se)
 }
-
-read_vc("mgreml/tutorial/components.VCs.out")
-
-read_vc("mgreml/tutorial/components.VCs.out")
-
-
-
-
-
-
-fread("mgreml/tutorial/pheno.txt")

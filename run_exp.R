@@ -59,10 +59,18 @@ lm(new_dat$new_y ~ new_dat$new_x - 1) %>% summary
 ######################################################################
 # NOTE!! the multivariate analysis is only for one SNP at this time
 # 5-1. run multivariate (gemma)
+# /common/jungj2/miniconda3/bin/gemma \
+#     -g /common/jungj2/miniconda3/envs/r_env/lib/R/library/gemma2/extdata/mouse100.geno.txt \
+#     -p /common/jungj2/miniconda3/envs/r_env/lib/R/library/gemma2/extdata/mouse100.pheno.txt \
+#     -k /common/jungj2/miniconda3/envs/r_env/lib/R/library/gemma2/extdata/mouse100.cXX.txt \
+#     -lmm \
+#     -n 1 6 \
+#     -o mouse100
+
 gemma <- fread("mouse100.assoc.txt") # results from gemma
 gemma %>%
-    filter(rs %in% sel_snps) %>%
-    arrange(p_wald)
+  filter(rs %in% sel_snps) %>%
+  arrange(p_wald)
 
 # 5-2. run reverse multivariate (Canonical Correlation Analysis; CCA)
 vegan::CCorA(X = new_dat$new_y, Y = new_dat$new_x)
