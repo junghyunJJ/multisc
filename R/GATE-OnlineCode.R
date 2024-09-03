@@ -20,7 +20,6 @@
 ##### Output 
 ## gate_pval: is the p value of the gate statistic 
 ####################################################################################
-
 GATE_fun <- function(y, g, x, B)
 {
     ##calculate the principal component of the multiple trait and the chi-squared statistics using lm
