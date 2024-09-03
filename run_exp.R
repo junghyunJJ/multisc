@@ -130,3 +130,4 @@ res_PC2_lmm <- qgg::greml(y = PC[, 2], X = cbind(1, X), GRM = list(K))
 hsq_PC2 <- res_PC2_lmm$theta[1] / sum(res_PC2_lmm$theta)
 hsq_PC1 + hsq_PC2
 # 1.530648
+
