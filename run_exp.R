@@ -10,6 +10,8 @@ source("R/multisc.R")
 pheno <- readr::read_tsv(system.file("extdata", "mouse100.pheno.txt", package = "gemma2"), col_names = FALSE)
 Y <- as.matrix(pheno[, c(1, 6)])
 Y %>% dim
+sum(diag(cov(Y)))
+# 1.666482
 
 # load pheno data from gemma2 r package
 K <- readr::read_tsv(system.file("extdata", "mouse100.cXX.txt", package = "gemma2"), col_names = FALSE)[, 1:100]  %>% as.matrix
@@ -107,43 +109,132 @@ res_multisc
 
 
 ######################################################################
-### hsq ##############################################################
-######################################################################
+### 6. hsq ###########################################################
+### 6-1. ori hsq #####################################################
 
-# NOTE!!! we need to chech the hsq
-res_lmm1 <- qgg::greml(y = Y[, 1], X = cbind(1, X), GRM = list(K))
+Y_std <- scale(Y)
+sum(diag(cor(Y_std)))
+
+# e1 <- lmmlite::eigen_rotation(K, Y[, 1], cbind(1, X))
+# res_lmm1 <- lmmlite::fitLMM(e1$Kva, e1$y, e1$X)
+# vg_lmm1 <- res_lmm1$sigmasq_g
+# ve_lmm1 <- res_lmm1$sigmasq_e
+# res_lmm1$hsq
+# # 0.8951924
+
+# e2 <- lmmlite::eigen_rotation(K, Y[, 2], cbind(1, X))
+# res_lmm2 <- lmmlite::fitLMM(e2$Kva, e2$y, e2$X)
+# vg_lmm2 <- res_lmm1$sigmasq_g
+# ve_lmm2 <- res_lmm1$sigmasq_e
+# res_lmm2$hsq
+# # 0.468617
+
+# (vg_lmm1 + vg_lmm2) / (vg_lmm1 + ve_lmm1 + vg_lmm2 + ve_lmm2)
+# # 0.8951924
+
+# (vg_lmm1 + vg_lmm2)
+# # 4.278105
+
+
+# res_lmm1 <- qgg::greml(y = Y[, 1], X = cbind(1, X), GRM = list(K))
+res_lmm1 <- qgg::greml(y = Y_std[, 1], X = cbind(1, X), GRM = list(K))
 vg_lmm1 <- res_lmm1$theta[1]
 ve_lmm1 <- res_lmm1$theta[2]
-# # vg_lmm1 / (vg_lmm1 + ve_lmm1)
-# 0.4686314
+(hsq1 <- vg_lmm1 / (vg_lmm1 + ve_lmm1))
+# 0.895193
 
-res_lmm2 <- qgg::greml(y = Y[, 2], X = cbind(1, X), GRM = list(K))
+# res_lmm2 <- qgg::greml(y = Y[, 2], X = cbind(1, X), GRM = list(K))
+res_lmm2 <- qgg::greml(y = Y_std[, 2], X = cbind(1, X), GRM = list(K))
 vg_lmm2 <- res_lmm2$theta[1]
 ve_lmm2 <- res_lmm2$theta[2]
-# vg_lmm2 / (vg_lmm2 + ve_lmm2)
-# # 0.7821886
+(hsq2 <- vg_lmm2 / (vg_lmm2 + ve_lmm2))
+# 0.4686314
 
 (vg_lmm1 + vg_lmm2) / (vg_lmm1 + ve_lmm1 + vg_lmm2 + ve_lmm2)
-# 0.7821886
+# 0.7634734
+
+vg_lmm1 + vg_lmm2
+# 2.86141
+
+hsq1 + hsq2
+# 1.363824
+
+######################################################################
+### 6. hsq ###########################################################
+### 6-2. PCA hsq #####################################################
+
+calpc <- function(y) {
+  m <- ncol(y)
+  eig <- eigen(cor(y))
+  # eig <- eigen(cov(y))
+
+  # calculate the eigenvalue and eigenvector of the correlation(or covariance) matrix of y
+  eig.val <- eig$values
+  eig.vec <- eig$vectors
+  PC <- y %*% eig.vec
+  return(list(PC = PC, eigval = eig.val))
+}
+
+res_PCA <- calpc(Y)
+PC <- res_PCA$PC
+# sum(diag(cov(PC)))
+# # 1.666482
+
+sum(diag(cor(PC)))
+# 2
+
+sum(res_PCA$eigval)
+# 2
+
+sum(diag(cov(Y)))
+# 1.666482
+
+# e_PC1 <- lmmlite::eigen_rotation(K, PC[, 1], cbind(1, X))
+# res_PC1_lmm <- lmmlite::fitLMM(e_PC1$Kva, e_PC1$y, e_PC1$X)
+ 
+# vg_PC1_lmm <- res_PC1_lmm$sigmasq_g
+# ve_PC1_lmm <- res_PC1_lmm$sigmasq_e
+# (hsq_PC1 <- res_PC1_lmm$hsq)
+# # 0.71283
+
+# e_PC2 <- lmmlite::eigen_rotation(K, PC[, 2], cbind(1, X))
+# res_PC2_lmm <- lmmlite::fitLMM(e_PC2$Kva, e_PC2$y, e_PC2$X)
+ 
+# vg_PC2_lmm <- res_PC2_lmm$sigmasq_g
+# ve_PC2_lmm <- res_PC2_lmm$sigmasq_e
+# (hsq_PC2 <- res_PC2_lmm$hsq)
+# # 0.7108151
 
 
+# ((hsq_PC1 * res_PCA$eigval[1]) + (hsq_PC2 * res_PCA$eigval[2])) / sum(res_PCA$eigval)
+# # 0.7120807
 
-eig <- eigen(cor(Y))
-eig.val <- eig$values
-eig.vec <- eig$vectors
-PC <- Y %*% eig.vec
+# (vg_PC1_lmm + vg_PC2_lmm) / (vg_PC1_lmm + ve_PC1_lmm + vg_PC2_lmm + ve_PC2_lmm)
+# # 0.7120687
+
+# vg_PC1_lmm + vg_PC2_lmm
+# # 2.053598
+
 
 res_PC1_lmm <- qgg::greml(y = PC[, 1], X = cbind(1, X), GRM = list(K))
 vg_PC1_lmm <- res_PC1_lmm$theta[1]
 ve_PC1_lmm <- res_PC1_lmm$theta[2]
-# vg_PC1_lmm / (vg_PC1_lmm + ve_PC1_lmm)
-# # 0.6441243
+(hsq_PC1 <- vg_PC1_lmm / (vg_PC1_lmm + ve_PC1_lmm))
+# 0.6441243
 
 res_PC2_lmm <- qgg::greml(y = PC[, 2], X = cbind(1, X), GRM = list(K))
 vg_PC2_lmm <- res_PC2_lmm$theta[1]
 ve_PC2_lmm <- res_PC2_lmm$theta[2]
-# vg_PC2_lmm / (vg_PC2_lmm + ve_PC2_lmm)
-# # 0.8865233
+(hsq_PC2 <- vg_PC2_lmm / (vg_PC2_lmm + ve_PC2_lmm))
+# 0.8865233
 
-(vg_PC1_lmm + vg_PC2_lmm) / (vg_PC1_lmm + ve_PC1_lmm + vg_PC2_lmm + ve_PC2_lmm)
-# 0.7685171
+((hsq_PC1 * res_PCA$eigval[1]) + (hsq_PC2 * res_PCA$eigval[2])) / sum(res_PCA$eigval)
+# 0.7369442
+
+# (vg_PC1_lmm + vg_PC2_lmm) / (vg_PC1_lmm + ve_PC1_lmm + vg_PC2_lmm + ve_PC2_lmm)
+
+vg_PC1_lmm + vg_PC2_lmm
+# 2.444472
+
+hsq_PC1 + hsq_PC2
+# 1.530648
