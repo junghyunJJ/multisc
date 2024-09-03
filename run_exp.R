@@ -4,7 +4,7 @@ library(data.table)
 library(gemma2) # https://github.com/fboehm/gemma2
 
 library(jjutil) # devtools::install_github("junghyunJJ/jjuitl")
-source("R/GATE-OnlineCode_JJ.R")
+source("R/multisc.R")
 
 # load pheno data from gemma2 r package
 pheno <- readr::read_tsv(system.file("extdata", "mouse100.pheno.txt", package = "gemma2"), col_names = FALSE)
