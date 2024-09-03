@@ -4,7 +4,7 @@ library(data.table)
 library(gemma2) # https://github.com/fboehm/gemma2
 
 library(jjutil) # devtools::install_github("junghyunJJ/jjuitl")
-source("R/multisc.R")
+source("R/GATE-OnlineCode_JJ.R")
 
 # load pheno data from gemma2 r package
 pheno <- readr::read_tsv(system.file("extdata", "mouse100.pheno.txt", package = "gemma2"), col_names = FALSE)
@@ -24,39 +24,10 @@ g1 <- geno[c(sel_idx), -c(1:3)] # first 3 columns are SNP annotations!
 X <- t(as.matrix(g1))
 g1 %>% dim
 
-# # test for multiple snp.
-# NOTE!! the resutls of multiple snps and single snp is the same.
-# sel_snps <- c("rs8275764", "rs6212654", "rs13477740")
-# sel_idx <- match(sel_snps, geno$X1)
-# g1 <- geno[c(sel_idx), -c(1:3)]
-# X <- t(as.matrix(g1))
-
-# 1. data transformation
-dat <- transformation(Y, X, K)
-dat %>% glimpse()
-
-# 2. extimate vg and ve
-res <- mvLMM(dat$Ystar, dat$Kva, dat$Kve)
-res
-
-# 3. data rotation
-new_dat <- rotation(dat$Ystar, dat$Xstar, res$vg, res$ve, dat$Kva)
-new_dat %>% glimpse()
-
-# Ordinary least squares: (X'X)-1(X'y)
-solve(t(new_dat$new_x) %*% new_dat$new_x) %*% t(new_dat$new_x) %*% new_dat$new_y
-
-# 4. run single
-res_single <- single_anlaysis(new_dat$new_y, new_dat$new_x)
-res_single
-
-# 4-1. run single using multiple linear
-# NOTE!! the 4-1 is only for one SNP at this time
-lm(new_dat$new_y ~ new_dat$new_x - 1) %>% summary
-
 ######################################################################
-### multivariate analysis ############################################
+### 1.GEMMA ##########################################################
 ######################################################################
+
 # NOTE!! the multivariate analysis is only for one SNP at this time
 # 5-1. run multivariate (gemma)
 # /common/jungj2/miniconda3/bin/gemma \
@@ -67,23 +38,95 @@ lm(new_dat$new_y ~ new_dat$new_x - 1) %>% summary
 #     -n 1 6 \
 #     -o mouse100
 
-gemma <- fread("data/mouse100.assoc.txt") # results from gemma
-gemma %>%
+raw_res_gemma <- fread("data/mouse100.assoc.txt") # results from gemma
+res_gemma <- raw_res_gemma %>%
   filter(rs %in% sel_snps) %>%
   arrange(p_wald)
+res_gemma$p_wald
+# [1] 3.282434e-06
 
-# 5-2. run reverse multivariate (Canonical Correlation Analysis; CCA)
-vegan::CCorA(X = new_dat$new_y, Y = new_dat$new_x)
+######################################################################
+### 2. Canonical Correlation Analysis (CCA) ##########################
+######################################################################
 
-# 5-3.  run reverse multivariate (Permutational Multivariate Analysis of Variance Using Distance Matrices)
-vegan::adonis2(new_dat$new_x ~ new_dat$new_y, method = "euclidean")
+res_CCA <- vegan::CCorA(X = X, Y = Y)
+res_CCA
+# Canonical Correlation Analysis
 
-# 5-3.  run reverse multivariate (mCPC Aschard et al, AJHG, 2014)
-mCPC(y = new_dat$new_x, g = new_dat$new_y)
+# Call:
+# vegan::CCorA(Y = Y, X = X) 
 
-# NOTE!! We need to check whether this approach is mathematically reasonable.
-# 5-4. susieR
-res_susie <- susieR::susie(y = new_dat$new_y, X = new_dat$new_x)
-coef(res_susie)[-1]
-res_susie$pip
-res_susie$sets
+#              Y X
+# Matrix Ranks 2 1
+
+# Pillai's trace:  0.2039568 
+
+# Significance of Pillai's trace:
+# from F-distribution:   1.5683e-05 
+#                        CanAxis1
+# Canonical Correlations   0.4516
+
+#                       Y | X  X | Y
+# RDA R squares      0.102155 0.2040
+# adj. RDA R squares 0.092993 0.1875
+
+###############################################################################
+### 3. Permutational Multivariate Analysis of Variance Using Distance Matrices#
+###############################################################################
+
+res_adonis2 <- vegan::adonis2(Y ~ X,  method = "euclidean")
+res_adonis2
+# Permutation test for adonis under reduced model
+# Terms added sequentially (first to last)
+# Permutation: free
+# Number of permutations: 999
+
+# vegan::adonis2(formula = Y ~ X, method = "euclidean")
+#          Df SumOfSqs      R2     F Pr(>F)
+# X         1   16.854 0.10216 11.15  0.001 ***
+# Residual 98  148.128 0.89784
+# Total    99  164.982 1.00000
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+######################################################################
+### 4. mCPC (Aschard et al, AJHG, 2014) ##############################
+######################################################################
+# (mCPC Aschard et al, AJHG, 2014)
+res_mCPC <- mCPC(Y, X)
+res_mCPC
+# [1] 3.195272e-05
+
+######################################################################
+### 5.multisc ########################################################
+######################################################################
+# (mCPC Aschard et al, AJHG, 2014)
+res_multisc <- multisc(Y, X, K)
+res_multisc
+# [1] 2.879274e-05
+
+
+######################################################################
+### hsq ##############################################################
+######################################################################
+
+# NOTE!!! we need to chech the hsq
+res_lmm1 <- qgg::greml(y = Y[, 1], X = cbind(1, X), GRM = list(K))
+hsq1 <- res_lmm1$theta[1] / sum(res_lmm1$theta)
+res_lmm2 <- qgg::greml(y = Y[, 2], X = cbind(1, X), GRM = list(K))
+hsq2 <- res_lmm2$theta[1] / sum(res_lmm2$theta)
+hsq1 + hsq2
+# 1.363824
+
+
+eig <- eigen(cor(Y))
+eig.val <- eig$values
+eig.vec <- eig$vectors
+PC <- Y %*% eig.vec
+
+res_PC1_lmm <- qgg::greml(y = PC[, 1], X = cbind(1, X), GRM = list(K))
+hsq_PC1 <- res_PC1_lmm$theta[1] / sum(res_PC1_lmm$theta)
+res_PC2_lmm <- qgg::greml(y = PC[, 2], X = cbind(1, X), GRM = list(K))
+hsq_PC2 <- res_PC2_lmm$theta[1] / sum(res_PC2_lmm$theta)
+hsq_PC1 + hsq_PC2
+# 1.530648

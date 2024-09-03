@@ -5,3 +5,5 @@
 old/
 test/
 tools/
+check_PCA.R
+check_PCA2.R
