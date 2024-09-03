@@ -112,11 +112,20 @@ res_multisc
 
 # NOTE!!! we need to chech the hsq
 res_lmm1 <- qgg::greml(y = Y[, 1], X = cbind(1, X), GRM = list(K))
-hsq1 <- res_lmm1$theta[1] / sum(res_lmm1$theta)
+vg_lmm1 <- res_lmm1$theta[1]
+ve_lmm1 <- res_lmm1$theta[2]
+# # vg_lmm1 / (vg_lmm1 + ve_lmm1)
+# 0.4686314
+
 res_lmm2 <- qgg::greml(y = Y[, 2], X = cbind(1, X), GRM = list(K))
-hsq2 <- res_lmm2$theta[1] / sum(res_lmm2$theta)
-hsq1 + hsq2
-# 1.363824
+vg_lmm2 <- res_lmm2$theta[1]
+ve_lmm2 <- res_lmm2$theta[2]
+# vg_lmm2 / (vg_lmm2 + ve_lmm2)
+# # 0.7821886
+
+(vg_lmm1 + vg_lmm2) / (vg_lmm1 + ve_lmm1 + vg_lmm2 + ve_lmm2)
+# 0.7821886
+
 
 
 eig <- eigen(cor(Y))
@@ -125,9 +134,16 @@ eig.vec <- eig$vectors
 PC <- Y %*% eig.vec
 
 res_PC1_lmm <- qgg::greml(y = PC[, 1], X = cbind(1, X), GRM = list(K))
-hsq_PC1 <- res_PC1_lmm$theta[1] / sum(res_PC1_lmm$theta)
-res_PC2_lmm <- qgg::greml(y = PC[, 2], X = cbind(1, X), GRM = list(K))
-hsq_PC2 <- res_PC2_lmm$theta[1] / sum(res_PC2_lmm$theta)
-hsq_PC1 + hsq_PC2
-# 1.530648
+vg_PC1_lmm <- res_PC1_lmm$theta[1]
+ve_PC1_lmm <- res_PC1_lmm$theta[2]
+# vg_PC1_lmm / (vg_PC1_lmm + ve_PC1_lmm)
+# # 0.6441243
 
+res_PC2_lmm <- qgg::greml(y = PC[, 2], X = cbind(1, X), GRM = list(K))
+vg_PC2_lmm <- res_PC2_lmm$theta[1]
+ve_PC2_lmm <- res_PC2_lmm$theta[2]
+# vg_PC2_lmm / (vg_PC2_lmm + ve_PC2_lmm)
+# # 0.8865233
+
+(vg_PC1_lmm + vg_PC2_lmm) / (vg_PC1_lmm + ve_PC1_lmm + vg_PC2_lmm + ve_PC2_lmm)
+# 0.7685171

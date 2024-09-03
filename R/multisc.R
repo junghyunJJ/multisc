@@ -21,6 +21,45 @@
 ## gate_pval: is the p value of the gate statistic
 ####################################################################################
 
+
+
+mCPC <- function(y, g, x=NULL)
+{
+  ##calculate the principal component of the multiple trait and the chi-squared statistics using lm
+  m <- ncol(y)
+  eig <- eigen(cor(y))
+  ### calculate the eigenvalue and eigenvector of the correlation matrix of y
+  eig.val <- eig$values
+  eig.vec <- eig$vectors
+  PC <- y %*% eig.vec
+  temp.Tstat <- rep(NA, m)
+  for(j in 1:m){
+    if(is.null(x)) {
+      temp.Tstat[j] <- summary(lm(PC[,j]~g))$coef[2,3]
+    } else {
+      temp.Tstat[j] <- summary(lm(PC[,j]~g+x))$coef[2,3]
+    }
+  }
+  chi.PC <- temp.Tstat^2
+  ### the test statistics based on all PC (put them in a group)
+  T.QF <- sum(chi.PC)
+  pv.QF <- 1-pchisq(T.QF, df=m)
+
+  ### the test statistic for the grouping with 2 groups
+  com1.stat <- cumsum(chi.PC[1:(m-1)])
+  com2.stat <- rev(cumsum((rev(chi.PC))[1:(m-1)]))
+  pv1 <- 1-pchisq(com1.stat, df=1:(m-1))
+  pv2 <- 1-pchisq(com2.stat, df=(m-1):1)
+  T.2g <- -2*log(pv1)-2*log(pv2)
+  pv.2g <- 1-pchisq(T.2g, df=4)
+  return(min(c(pv.QF, pv.2g)))
+  # ## the minimal p value of all possible groupings
+  # gate_stat <- min(c(pv.QF, pv.2g))
+  # reg_gate <- refGate(m, B=B)
+  # gate_pval <- mean(reg_gate<gate_stat)
+  # return(gate_pval)
+}
+
 multisc <- function(y, g, K, x = NULL) {
   ## calculate the principal component of the multiple trait and the chi-squared statistics using lm
   m <- ncol(y)
@@ -63,41 +102,3 @@ multisc <- function(y, g, K, x = NULL) {
   # gate_pval <- mean(reg_gate<gate_stat)
   # return(gate_pval)
 }
-
-mCPC <- function(y, g, x=NULL)
-{
-  ##calculate the principal component of the multiple trait and the chi-squared statistics using lm
-  m <- ncol(y)
-  eig <- eigen(cor(y))
-  ### calculate the eigenvalue and eigenvector of the correlation matrix of y
-  eig.val <- eig$values
-  eig.vec <- eig$vectors
-  PC <- y %*% eig.vec
-  temp.Tstat <- rep(NA, m)
-  for(j in 1:m){
-    if(is.null(x)) {
-      temp.Tstat[j] <- summary(lm(PC[,j]~g))$coef[2,3]
-    } else {
-      temp.Tstat[j] <- summary(lm(PC[,j]~g+x))$coef[2,3]
-    }
-  }
-  chi.PC <- temp.Tstat^2
-  ### the test statistics based on all PC (put them in a group)
-  T.QF <- sum(chi.PC)
-  pv.QF <- 1-pchisq(T.QF, df=m)
-
-  ### the test statistic for the grouping with 2 groups
-  com1.stat <- cumsum(chi.PC[1:(m-1)])
-  com2.stat <- rev(cumsum((rev(chi.PC))[1:(m-1)]))
-  pv1 <- 1-pchisq(com1.stat, df=1:(m-1))
-  pv2 <- 1-pchisq(com2.stat, df=(m-1):1)
-  T.2g <- -2*log(pv1)-2*log(pv2)
-  pv.2g <- 1-pchisq(T.2g, df=4)
-  return(min(c(pv.QF, pv.2g)))
-  # ## the minimal p value of all possible groupings
-  # gate_stat <- min(c(pv.QF, pv.2g))
-  # reg_gate <- refGate(m, B=B)
-  # gate_pval <- mean(reg_gate<gate_stat)
-  # return(gate_pval)
-}
-
